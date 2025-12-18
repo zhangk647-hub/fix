@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { 
@@ -87,10 +88,7 @@ function ACRepairApp() {
   const [faults, setFaults] = useState<FaultCode[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  // PWA安装相关状态
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
-  
+
   // 数据持久化
   useEffect(() => {
     const savedFaults = localStorage.getItem('ac_faults');
@@ -103,59 +101,7 @@ function ACRepairApp() {
     }
     if (savedRequests) setPendingRequests(JSON.parse(savedRequests));
   }, []);
-  
-  // PWA安装事件监听
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      // 阻止默认的安装提示
-      e.preventDefault();
-      // 保存事件以便稍后触发
-      setDeferredPrompt(e);
-      // 显示自定义安装提示
-      setShowInstallPrompt(true);
-    };
-  
-    // 监听安装提示事件
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  
-    return () => {
-      // 移除事件监听
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-  
-  // 处理安装
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
-  
-    // 显示安装提示
-    deferredPrompt.prompt();
-  
-    // 等待用户响应
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`安装结果: ${outcome}`);
-  
-    // 重置deferredPrompt
-    setDeferredPrompt(null);
-    // 隐藏安装提示
-    setShowInstallPrompt(false);
-  };
-  
-  // 处理已安装事件
-  useEffect(() => {
-    const handleAppInstalled = () => {
-      console.log('应用已安装');
-      setDeferredPrompt(null);
-      setShowInstallPrompt(false);
-    };
-  
-    window.addEventListener('appinstalled', handleAppInstalled);
-  
-    return () => {
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, []);
-  
+
   const updateFaults = (newFaults: FaultCode[]) => {
     setFaults(newFaults);
     localStorage.setItem('ac_faults', JSON.stringify(newFaults));
@@ -344,6 +290,7 @@ function ACRepairApp() {
       </header>
 
       <main className="flex-1 overflow-y-auto p-5 max-w-lg mx-auto w-full">
+        
         {/* --- 维修工视角: 列表 --- */}
         {view === 'list' && (
           <div className="space-y-4">
@@ -394,7 +341,7 @@ function ACRepairApp() {
 
         {/* --- 维修工视角: 详情 --- */}
         {view === 'detail' && selectedFault && (
-          <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="bg-white p-7 rounded-[2rem] shadow-sm border-t-8" style={{ borderTopColor: COLORS.secondary }}>
               <div className="flex items-center gap-2 mb-2">
                 <FileText size={14} className="text-slate-400" />
@@ -405,7 +352,7 @@ function ACRepairApp() {
 
             <div className="space-y-4">
               <h3 className="text-sm font-bold text-slate-500 px-2 flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-green-500" />
+                <CheckCircle2 size={16} className="text-green-500" /> 
                 解决措施列表
               </h3>
               
@@ -739,36 +686,6 @@ function ACRepairApp() {
         )}
 
       </main>
-
-      {/* PWA安装提示 */}
-      {showInstallPrompt && (
-        <div className="fixed bottom-5 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 animate-in slide-in-from-bottom-4 duration-300">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center border border-blue-100">
-              <Settings size={24} style={{ color: COLORS.primary }} />
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-800">安装应用</h3>
-              <p className="text-xs text-slate-400">将此应用添加到主屏幕，随时使用</p>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <button 
-              onClick={() => setShowInstallPrompt(false)}
-              className="flex-1 py-3 rounded-2xl border border-slate-200 font-bold text-sm transition-all active:scale-95"
-            >
-              稍后再说
-            </button>
-            <button 
-              onClick={handleInstall}
-              className="flex-1 py-3 rounded-2xl font-bold text-sm text-white transition-all active:scale-95"
-              style={{ backgroundColor: COLORS.secondary }}
-            >
-              安装
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* 底部悬浮指示器 */}
       {role === 'tech' && view === 'detail' && (
