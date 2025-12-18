@@ -15,14 +15,14 @@ export default defineConfig(({ mode }) => {
         VitePWA({
           registerType: 'autoUpdate',
           workbox: {
-            globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+            globPatterns: ['**/*.{js,css,html,ico,png,svg,json}']
           },
-          includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', 'jia_512.png'],
+          includeAssets: ['jia_512.png'],
           manifest: {
             name: '海信日立空调维修查询',
             short_name: '空调维修',
             description: '海信日立空调维修查询应用',
-            theme_color: '#ffffff',
+            theme_color: '#005a9c',
             background_color: '#ffffff',
             display: 'standalone',
             start_url: '/',
@@ -31,12 +31,13 @@ export default defineConfig(({ mode }) => {
                 src: 'jia_512.png',
                 sizes: '512x512',
                 type: 'image/png',
-                purpose: 'any maskable'
+                purpose: 'any'
               },
               {
                 src: 'jia_512.png',
-                sizes: '192x192',
-                type: 'image/png'
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'maskable'
               }
             ]
           }
