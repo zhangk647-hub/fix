@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
+import { registerSW } from 'virtual:pwa-register';
 import { 
   ChevronRight, 
   Plus, 
@@ -713,15 +714,7 @@ if (container) {
   root.render(<ACRepairApp />);
 }
 
-// PWA Service Worker 注册代码
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => {
-        console.log('ServiceWorker registered with scope:', registration.scope);
-      })
-      .catch(error => {
-        console.error('ServiceWorker registration failed:', error);
-      });
-  });
-}
+// 使用 vite-plugin-pwa 提供的注册方法，自动处理 Service Worker
+registerSW({
+  immediate: true,
+});
