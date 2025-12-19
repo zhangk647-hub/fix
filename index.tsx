@@ -1,12 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
-import { registerSW } from 'virtual:pwa-register';
-import {
-  lcCreatePendingRequest,
-  lcDeletePendingRequest,
-  lcFetchPendingRequests,
-} from './leancloud';
 import { 
   ChevronRight, 
   Plus, 
@@ -29,6 +23,9 @@ import {
   Save
 } from 'lucide-react';
 
+// 导入腾讯云服务
+import { tcCreatePendingRequest, tcFetchPendingRequests, tcDeletePendingRequest } from './tencentcloud';
+
 // --- 类型定义 ---
 
 interface Solution {
@@ -50,22 +47,6 @@ interface PendingRequest {
   solutionText: string;
   timestamp: number;
 }
-
-// 本地离线上报队列（只保存“待上传到云端的建议”）
-const PENDING_QUEUE_KEY = 'ac_pending_queue';
-
-const loadPendingQueue = (): PendingRequest[] => {
-  try {
-    const raw = localStorage.getItem(PENDING_QUEUE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-};
-
-const savePendingQueue = (queue: PendingRequest[]) => {
-  localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(queue));
-};
 
 // --- 初始数据 ---
 
@@ -111,73 +92,38 @@ function ACRepairApp() {
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 数据持久化（故障代码本地，建议列表走云端）
+  // 数据持久化
   useEffect(() => {
     const savedFaults = localStorage.getItem('ac_faults');
+    const savedRequests = localStorage.getItem('ac_pending');
     if (savedFaults) {
       setFaults(JSON.parse(savedFaults));
     } else {
       setFaults(INITIAL_FAULTS);
       localStorage.setItem('ac_faults', JSON.stringify(INITIAL_FAULTS));
     }
-
-    // 初次加载时，同步云端待审建议（LeanCloud）
-    const fetchPending = async () => {
+    if (savedRequests) setPendingRequests(JSON.parse(savedRequests));
+    
+    // 从腾讯云获取最新的待审批请求
+    const fetchFromCloud = async () => {
       try {
-        const list = await lcFetchPendingRequests();
-        setPendingRequests(list);
-      } catch (e) {
-        console.error('加载云端待审建议失败', e);
-      }
-    };
-
-    fetchPending();
-  }, []);
-
-  // 同步本地离线队列到云端：只在有网时执行
-  const syncPendingQueueToCloud = async () => {
-    if (!navigator.onLine) return;
-    const queue = loadPendingQueue();
-    if (!queue.length) return;
-    const remaining: PendingRequest[] = [];
-
-    for (const item of queue) {
-      try {
-        const objectId = await lcCreatePendingRequest({
-          faultCode: item.faultCode,
-          solutionText: item.solutionText,
-          timestamp: item.timestamp,
-        });
-        // 用 LeanCloud 的 objectId 作为 id
-        const serverItem: PendingRequest = { ...item, id: objectId };
-        // 同步成功后更新当前内存中的待审列表（避免重复）
-        setPendingRequests(prev => {
-          if (prev.some(p => p.id === serverItem.id)) return prev;
-          return [...prev, serverItem];
-        });
-      } catch (e) {
-        console.error('同步单条建议失败，将保留在本地队列', e);
-        // 如果是网络错误，保留在队列；如果是认证错误，也保留但记录详细错误
-        if (e instanceof Error && e.message.includes('401')) {
-          console.error('LeanCloud 认证失败，请检查 App ID 和 App Key');
+        const cloudRequests = await tcFetchPendingRequests();
+        if (cloudRequests.length > 0) {
+          const requests: PendingRequest[] = cloudRequests.map(req => ({
+            id: req._id,
+            faultCode: req.faultCode,
+            solutionText: req.solutionText,
+            timestamp: req.timestamp
+          }));
+          setPendingRequests(requests);
+          localStorage.setItem('ac_pending', JSON.stringify(requests));
         }
-        remaining.push(item);
+      } catch (error) {
+        console.error('从腾讯云获取待审批请求失败:', error);
       }
-    }
-
-    savePendingQueue(remaining);
-  };
-
-  // 监听网络恢复时自动同步离线队列
-  useEffect(() => {
-    const handler = () => {
-      syncPendingQueueToCloud();
     };
-    window.addEventListener('online', handler);
-    // 启动时也尝试同步一次
-    syncPendingQueueToCloud();
-    return () => window.removeEventListener('online', handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
+    fetchFromCloud();
   }, []);
 
   const updateFaults = (newFaults: FaultCode[]) => {
@@ -190,9 +136,57 @@ function ACRepairApp() {
     }
   };
 
-  // 仅用于管理员界面更新“当前内存中的待审列表”（真实数据仍来自云端）
-  const updateRequests = (newRequests: PendingRequest[]) => {
+  const updateRequests = async (newRequests: PendingRequest[]) => {
     setPendingRequests(newRequests);
+    localStorage.setItem('ac_pending', JSON.stringify(newRequests));
+    
+    // 这里可以根据需要实现与腾讯云的同步逻辑
+    // 例如：只同步新增的请求，或者全量同步
+  };
+
+  // 添加待审批请求
+  const addPendingRequest = async (request: PendingRequest) => {
+    try {
+      // 同步到腾讯云
+      const cloudRequest = await tcCreatePendingRequest({
+        faultCode: request.faultCode,
+        solutionText: request.solutionText,
+        timestamp: request.timestamp
+      });
+      
+      // 更新本地状态
+      const newRequest = {
+        ...request,
+        id: cloudRequest._id
+      };
+      const newRequests = [...pendingRequests, newRequest];
+      setPendingRequests(newRequests);
+      localStorage.setItem('ac_pending', JSON.stringify(newRequests));
+      
+      return newRequest;
+    } catch (error) {
+      console.error('添加待审批请求失败:', error);
+      // 如果云同步失败，仍然保存到本地
+      const newRequests = [...pendingRequests, request];
+      setPendingRequests(newRequests);
+      localStorage.setItem('ac_pending', JSON.stringify(newRequests));
+      return request;
+    }
+  };
+
+  // 删除待审批请求
+  const removePendingRequest = async (id: string) => {
+    try {
+      // 从腾讯云删除
+      await tcDeletePendingRequest(id);
+    } catch (error) {
+      console.error('从腾讯云删除待审批请求失败:', error);
+    } finally {
+      // 更新本地状态
+      const newRequests = pendingRequests.filter(req => req.id !== id);
+      setPendingRequests(newRequests);
+      localStorage.setItem('ac_pending', JSON.stringify(newRequests));
+    }
   };
 
   // 逻辑处理
@@ -446,54 +440,41 @@ function ACRepairApp() {
               </div>
             </div>
 
-            {/* 提交新建议 */}
-            <div className="mt-8 pt-8 border-t border-slate-200">
-              <div className="bg-blue-600 p-8 rounded-[2rem] text-white shadow-xl">
-                <h4 className="font-bold text-lg mb-2 flex items-center gap-2">
-                  <PlusCircle size={20} />
-                  上报新方案
-                </h4>
-                <p className="text-blue-100 text-sm mb-6">如果现有方法无效，请分享您的维修经验。管理员审核后将向全员发布。</p>
-                <form onSubmit={async (e: any) => {
-                  e.preventDefault();
-                  const val = e.target.solution.value as string;
-                  if (!val.trim()) return;
-                  const newReq: PendingRequest = {
-                    id: Date.now().toString(),
-                    faultCode: selectedFault.code,
-                    solutionText: val,
-                    timestamp: Date.now()
-                  };
-
-                  // 先写入本地离线队列，保证即使当前没网也不会丢
-                  const currentQueue = loadPendingQueue();
-                  savePendingQueue([...currentQueue, newReq]);
-
-                  // 尝试立即同步到云端（若失败，保留在队列中，等待下次有网自动同步）
-                  try {
-                    await syncPendingQueueToCloud();
-                    alert(navigator.onLine ? '申请已提交，感谢您的贡献！' : '已保存，将在网络恢复后自动提交。');
-                  } catch (e) {
-                    console.error('提交失败:', e);
-                    alert('已离线保存，将在网络恢复后自动提交。错误: ' + (e instanceof Error ? e.message : String(e)));
-                  }
-
-                  e.target.reset();
-                }}>
-                  <textarea 
-                    name="solution"
-                    placeholder="请详述您的解决方案..."
-                    className="w-full p-5 rounded-2xl bg-white/10 border border-white/20 text-white placeholder:text-white/40 min-h-[120px] mb-4 outline-none focus:bg-white/20 transition-all text-sm"
-                  />
-                  <button 
-                    type="submit"
-                    className="w-full py-4 rounded-xl bg-white text-blue-600 font-bold text-lg transition-all active:scale-95 shadow-lg"
-                  >
-                    提交审核
-                  </button>
-                </form>
-              </div>
-            </div>
+             {/* 提交新建议 */}
+             <div className="mt-8 pt-8 border-t border-slate-200">
+               <div className="bg-blue-600 p-8 rounded-[2rem] text-white shadow-xl">
+                 <h4 className="font-bold text-lg mb-2 flex items-center gap-2">
+                   <PlusCircle size={20} />上报新方案
+                 </h4>
+                 <p className="text-blue-100 text-sm mb-6">如果现有方法无效，请分享您的维修经验。管理员审核后将向全员发布。</p>
+                 <form onSubmit={async (e: any) => {
+                   e.preventDefault();
+                   const val = e.target.solution.value;
+                   if (!val.trim()) return;
+                   const newReq: PendingRequest = {
+                     id: Date.now().toString(),
+                     faultCode: selectedFault.code,
+                     solutionText: val,
+                     timestamp: Date.now()
+                   };
+                   await addPendingRequest(newReq);
+                   alert('申请已提交，感谢您的贡献！');
+                   e.target.reset();
+                 }}>
+                   <textarea 
+                     name="solution"
+                     placeholder="请详述您的解决方案..."
+                     className="w-full p-5 rounded-2xl bg-white/10 border border-white/20 text-white placeholder:text-white/40 min-h-[120px] mb-4 outline-none focus:bg-white/20 transition-all text-sm"
+                   />
+                   <button 
+                     type="submit"
+                     className="w-full py-4 rounded-xl bg-white text-blue-600 font-bold text-lg transition-all active:scale-95 shadow-lg"
+                   >
+                     提交审核
+                   </button>
+                 </form>
+               </div>
+             </div>
           </div>
         )}
 
@@ -710,84 +691,72 @@ function ACRepairApp() {
           </div>
         )}
 
-        {/* --- 管理员: 审核界面 --- */}
-        {view === 'admin-review' && (
-          <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
-            {pendingRequests.length === 0 ? (
-              <div className="text-center py-24 text-slate-300">
-                <CheckCircle2 size={80} className="mx-auto mb-4 opacity-5" />
-                <p className="font-bold">审核队列已清空</p>
-                <button 
-                  onClick={() => setView('admin-dashboard')}
-                  className="mt-6 text-blue-600 font-bold text-sm underline"
-                >
-                  返回控制台
-                </button>
-              </div>
-            ) : (
-              pendingRequests.map(req => (
-                <div key={req.id} className="bg-white p-6 rounded-[2rem] shadow-lg space-y-4 border border-slate-100">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black px-4 py-1.5 bg-blue-600 text-white rounded-full shadow-md">
-                      故障码: {req.faultCode}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-bold">
-                      {new Date(req.timestamp).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                    <p className="text-sm font-bold text-slate-700 leading-relaxed italic">“{req.solutionText}”</p>
-                  </div>
-                  <div className="flex gap-3 pt-2">
-                    <button 
-                      onClick={async () => {
-                        const newFaults = faults.map(f => {
-                          if (f.code === req.faultCode) {
-                            return {
-                              ...f,
-                              solutions: [...f.solutions, { 
-                                id: req.id, 
-                                text: req.solutionText, 
-                                isApproved: true, 
-                                author: 'technician' as const
-                              }]
-                            };
-                          }
-                          return f;
-                        });
-                        updateFaults(newFaults);
-                        updateRequests(pendingRequests.filter(r => r.id !== req.id));
-
-                        // 从云端删除已处理的待审记录（LeanCloud）
-                        try {
-                          await lcDeletePendingRequest(req.id);
-                        } catch (e) {
-                          console.error('删除云端待审记录失败', e);
-                        }
-                      }}
-                      className="flex-1 py-4 rounded-2xl bg-green-500 text-white text-sm font-black flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-green-200"
-                    >
-                      <Check size={18} /> 采纳发布
-                    </button>
-                    <button 
-                      onClick={async () => {
-                        updateRequests(pendingRequests.filter(r => r.id !== req.id));
-                        try {
-                          await lcDeletePendingRequest(req.id);
-                        } catch (e) {
-                          console.error('删除云端待审记录失败', e);
-                        }
-                      }}
-                      className="flex-1 py-4 rounded-2xl bg-white border-2 border-slate-100 text-slate-400 text-sm font-bold flex items-center justify-center gap-2 active:scale-95"
-                    >
-                      <X size={18} /> 拒绝
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
+         {/* --- 管理员: 审核界面 --- */}
+         {view === 'admin-review' && (
+           <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
+             {pendingRequests.length === 0 ? (
+               <div className="text-center py-24 text-slate-300">
+                 <CheckCircle2 size={80} className="mx-auto mb-4 opacity-5" />
+                 <p className="font-bold">审核队列已清空</p>
+                 <button 
+                   onClick={() => setView('admin-dashboard')}
+                   className="mt-6 text-blue-600 font-bold text-sm underline"
+                 >
+                   返回控制台
+                 </button>
+               </div>
+             ) : (
+               pendingRequests.map(req => (
+                 <div key={req.id} className="bg-white p-6 rounded-[2rem] shadow-lg space-y-4 border border-slate-100">
+                   <div className="flex items-center justify-between">
+                     <span className="text-xs font-black px-4 py-1.5 bg-blue-600 text-white rounded-full shadow-md">
+                       故障码: {req.faultCode}
+                     </span>
+                     <span className="text-[10px] text-slate-400 font-bold">
+                       {new Date(req.timestamp).toLocaleString()}
+                     </span>
+                   </div>
+                   <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                     <p className="text-sm font-bold text-slate-700 leading-relaxed italic">“{req.solutionText}”</p>
+                   </div>
+                   <div className="flex gap-3 pt-2">
+                     <button 
+                       onClick={async () => {
+                         const newFaults = faults.map(f => {
+                           if (f.code === req.faultCode) {
+                             return {
+                               ...f,
+                               solutions: [...f.solutions, { 
+                                 id: req.id, 
+                                 text: req.solutionText, 
+                                 isApproved: true, 
+                                 author: 'technician' as const
+                               }]
+                             };
+                           }
+                           return f;
+                         });
+                         updateFaults(newFaults);
+                         await removePendingRequest(req.id);
+                       }}
+                       className="flex-1 py-4 rounded-2xl bg-green-500 text-white text-sm font-black flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-green-200"
+                     >
+                       <Check size={18} /> 采纳发布
+                     </button>
+                     <button 
+                       onClick={async () => {
+                         await removePendingRequest(req.id);
+                       }}
+                       className="flex-1 py-4 rounded-2xl bg-white border-2 border-slate-100 text-slate-400 text-sm font-bold flex items-center justify-center gap-2 active:scale-95"
+                     >
+                       <X size={18} /> 拒绝
+                     </button>
+                   </div>
+                 </div>
+               ))
+             )}
+           </div>
+         )}
 
       </main>
 
@@ -817,7 +786,15 @@ if (container) {
   root.render(<ACRepairApp />);
 }
 
-// 使用 vite-plugin-pwa 提供的注册方法，自动处理 Service Worker
-registerSW({
-  immediate: true,
-});
+// PWA Service Worker 注册代码
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('ServiceWorker registered with scope:', registration.scope);
+      })
+      .catch(error => {
+        console.error('ServiceWorker registration failed:', error);
+      });
+  });
+}
