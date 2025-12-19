@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
+import { collection, doc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
+import { db } from './firebase';
 import { 
   ChevronRight, 
   Plus, 
@@ -45,6 +47,22 @@ interface PendingRequest {
   solutionText: string;
   timestamp: number;
 }
+
+// 本地离线上报队列（只保存“待上传到云端的建议”）
+const PENDING_QUEUE_KEY = 'ac_pending_queue';
+
+const loadPendingQueue = (): PendingRequest[] => {
+  try {
+    const raw = localStorage.getItem(PENDING_QUEUE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+const savePendingQueue = (queue: PendingRequest[]) => {
+  localStorage.setItem(PENDING_QUEUE_KEY, JSON.stringify(queue));
+};
 
 // --- 初始数据 ---
 
@@ -90,17 +108,78 @@ function ACRepairApp() {
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 数据持久化
+  // 数据持久化（故障代码本地，建议列表走云端）
   useEffect(() => {
     const savedFaults = localStorage.getItem('ac_faults');
-    const savedRequests = localStorage.getItem('ac_pending');
     if (savedFaults) {
       setFaults(JSON.parse(savedFaults));
     } else {
       setFaults(INITIAL_FAULTS);
       localStorage.setItem('ac_faults', JSON.stringify(INITIAL_FAULTS));
     }
-    if (savedRequests) setPendingRequests(JSON.parse(savedRequests));
+
+    // 初次加载时，同步云端待审建议
+    const fetchPending = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'pendingRequests'));
+        const list: PendingRequest[] = [];
+        snap.forEach(d => {
+          const data = d.data() as Omit<PendingRequest, 'id'>;
+          list.push({
+            id: d.id,
+            faultCode: data.faultCode,
+            solutionText: data.solutionText,
+            timestamp: data.timestamp,
+          });
+        });
+        setPendingRequests(list);
+      } catch (e) {
+        console.error('加载云端待审建议失败', e);
+      }
+    };
+
+    fetchPending();
+  }, []);
+
+  // 同步本地离线队列到云端：只在有网时执行
+  const syncPendingQueueToCloud = async () => {
+    if (!navigator.onLine) return;
+    const queue = loadPendingQueue();
+    if (!queue.length) return;
+    const remaining: PendingRequest[] = [];
+
+    for (const item of queue) {
+      try {
+        // 使用请求自身的 id 作为文档 id，方便后续删除
+        await setDoc(doc(db, 'pendingRequests', item.id), {
+          faultCode: item.faultCode,
+          solutionText: item.solutionText,
+          timestamp: item.timestamp,
+        });
+        // 同步成功后更新当前内存中的待审列表
+        setPendingRequests(prev => {
+          if (prev.some(p => p.id === item.id)) return prev;
+          return [...prev, item];
+        });
+      } catch (e) {
+        console.error('同步单条建议失败，将保留在本地队列', e);
+        remaining.push(item);
+      }
+    }
+
+    savePendingQueue(remaining);
+  };
+
+  // 监听网络恢复时自动同步离线队列
+  useEffect(() => {
+    const handler = () => {
+      syncPendingQueueToCloud();
+    };
+    window.addEventListener('online', handler);
+    // 启动时也尝试同步一次
+    syncPendingQueueToCloud();
+    return () => window.removeEventListener('online', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const updateFaults = (newFaults: FaultCode[]) => {
@@ -113,9 +192,9 @@ function ACRepairApp() {
     }
   };
 
+  // 仅用于管理员界面更新“当前内存中的待审列表”（真实数据仍来自云端）
   const updateRequests = (newRequests: PendingRequest[]) => {
     setPendingRequests(newRequests);
-    localStorage.setItem('ac_pending', JSON.stringify(newRequests));
   };
 
   // 逻辑处理
@@ -377,9 +456,9 @@ function ACRepairApp() {
                   上报新方案
                 </h4>
                 <p className="text-blue-100 text-sm mb-6">如果现有方法无效，请分享您的维修经验。管理员审核后将向全员发布。</p>
-                <form onSubmit={(e: any) => {
+                <form onSubmit={async (e: any) => {
                   e.preventDefault();
-                  const val = e.target.solution.value;
+                  const val = e.target.solution.value as string;
                   if (!val.trim()) return;
                   const newReq: PendingRequest = {
                     id: Date.now().toString(),
@@ -387,8 +466,19 @@ function ACRepairApp() {
                     solutionText: val,
                     timestamp: Date.now()
                   };
-                  updateRequests([...pendingRequests, newReq]);
-                  alert('申请已提交，感谢您的贡献！');
+
+                  // 先写入本地离线队列，保证即使当前没网也不会丢
+                  const currentQueue = loadPendingQueue();
+                  savePendingQueue([...currentQueue, newReq]);
+
+                  // 尝试立即同步到云端（若失败，保留在队列中，等待下次有网自动同步）
+                  try {
+                    await syncPendingQueueToCloud();
+                    alert(navigator.onLine ? '申请已提交，感谢您的贡献！' : '已保存，将在网络恢复后自动提交。');
+                  } catch {
+                    alert('已离线保存，将在网络恢复后自动提交。');
+                  }
+
                   e.target.reset();
                 }}>
                   <textarea 
@@ -651,7 +741,7 @@ function ACRepairApp() {
                   </div>
                   <div className="flex gap-3 pt-2">
                     <button 
-                      onClick={() => {
+                      onClick={async () => {
                         const newFaults = faults.map(f => {
                           if (f.code === req.faultCode) {
                             return {
@@ -668,13 +758,27 @@ function ACRepairApp() {
                         });
                         updateFaults(newFaults);
                         updateRequests(pendingRequests.filter(r => r.id !== req.id));
+
+                        // 从云端删除已处理的待审记录
+                        try {
+                          await deleteDoc(doc(db, 'pendingRequests', req.id));
+                        } catch (e) {
+                          console.error('删除云端待审记录失败', e);
+                        }
                       }}
                       className="flex-1 py-4 rounded-2xl bg-green-500 text-white text-sm font-black flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-green-200"
                     >
                       <Check size={18} /> 采纳发布
                     </button>
                     <button 
-                      onClick={() => updateRequests(pendingRequests.filter(r => r.id !== req.id))}
+                      onClick={async () => {
+                        updateRequests(pendingRequests.filter(r => r.id !== req.id));
+                        try {
+                          await deleteDoc(doc(db, 'pendingRequests', req.id));
+                        } catch (e) {
+                          console.error('删除云端待审记录失败', e);
+                        }
+                      }}
                       className="flex-1 py-4 rounded-2xl bg-white border-2 border-slate-100 text-slate-400 text-sm font-bold flex items-center justify-center gap-2 active:scale-95"
                     >
                       <X size={18} /> 拒绝
