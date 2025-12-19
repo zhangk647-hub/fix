@@ -10,12 +10,16 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
       },
+      // 优化静态资源路径配置，确保在各种环境下正确访问
+      base: './', // 使用相对路径，确保在任何域名下都能正确加载资源
       plugins: [
         react(),
         VitePWA({
           registerType: 'autoUpdate',
           workbox: {
-            globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+            globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+            // 设置相对路径前缀
+            navigateFallback: './index.html'
           },
           includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', 'jia_512.png'],
           manifest: {
@@ -25,7 +29,7 @@ export default defineConfig(({ mode }) => {
             theme_color: '#ffffff',
             background_color: '#ffffff',
             display: 'standalone',
-            start_url: '/',
+            start_url: './', // 使用相对路径
             icons: [
               {
                 src: 'jia_512.png',
