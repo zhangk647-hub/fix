@@ -2,8 +2,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
-import { collection, doc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
-import { db } from './firebase';
+import {
+  lcCreatePendingRequest,
+  lcDeletePendingRequest,
+  lcFetchPendingRequests,
+} from './leancloud';
 import { 
   ChevronRight, 
   Plus, 
@@ -118,20 +121,10 @@ function ACRepairApp() {
       localStorage.setItem('ac_faults', JSON.stringify(INITIAL_FAULTS));
     }
 
-    // 初次加载时，同步云端待审建议
+    // 初次加载时，同步云端待审建议（LeanCloud）
     const fetchPending = async () => {
       try {
-        const snap = await getDocs(collection(db, 'pendingRequests'));
-        const list: PendingRequest[] = [];
-        snap.forEach(d => {
-          const data = d.data() as Omit<PendingRequest, 'id'>;
-          list.push({
-            id: d.id,
-            faultCode: data.faultCode,
-            solutionText: data.solutionText,
-            timestamp: data.timestamp,
-          });
-        });
+        const list = await lcFetchPendingRequests();
         setPendingRequests(list);
       } catch (e) {
         console.error('加载云端待审建议失败', e);
@@ -150,16 +143,17 @@ function ACRepairApp() {
 
     for (const item of queue) {
       try {
-        // 使用请求自身的 id 作为文档 id，方便后续删除
-        await setDoc(doc(db, 'pendingRequests', item.id), {
+        const objectId = await lcCreatePendingRequest({
           faultCode: item.faultCode,
           solutionText: item.solutionText,
           timestamp: item.timestamp,
         });
-        // 同步成功后更新当前内存中的待审列表
+        // 用 LeanCloud 的 objectId 作为 id
+        const serverItem: PendingRequest = { ...item, id: objectId };
+        // 同步成功后更新当前内存中的待审列表（避免重复）
         setPendingRequests(prev => {
-          if (prev.some(p => p.id === item.id)) return prev;
-          return [...prev, item];
+          if (prev.some(p => p.id === serverItem.id)) return prev;
+          return [...prev, serverItem];
         });
       } catch (e) {
         console.error('同步单条建议失败，将保留在本地队列', e);
@@ -759,9 +753,9 @@ function ACRepairApp() {
                         updateFaults(newFaults);
                         updateRequests(pendingRequests.filter(r => r.id !== req.id));
 
-                        // 从云端删除已处理的待审记录
+                        // 从云端删除已处理的待审记录（LeanCloud）
                         try {
-                          await deleteDoc(doc(db, 'pendingRequests', req.id));
+                          await lcDeletePendingRequest(req.id);
                         } catch (e) {
                           console.error('删除云端待审记录失败', e);
                         }
@@ -774,7 +768,7 @@ function ACRepairApp() {
                       onClick={async () => {
                         updateRequests(pendingRequests.filter(r => r.id !== req.id));
                         try {
-                          await deleteDoc(doc(db, 'pendingRequests', req.id));
+                          await lcDeletePendingRequest(req.id);
                         } catch (e) {
                           console.error('删除云端待审记录失败', e);
                         }
