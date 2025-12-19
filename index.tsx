@@ -157,6 +157,10 @@ function ACRepairApp() {
         });
       } catch (e) {
         console.error('同步单条建议失败，将保留在本地队列', e);
+        // 如果是网络错误，保留在队列；如果是认证错误，也保留但记录详细错误
+        if (e instanceof Error && e.message.includes('401')) {
+          console.error('LeanCloud 认证失败，请检查 App ID 和 App Key');
+        }
         remaining.push(item);
       }
     }
@@ -469,8 +473,9 @@ function ACRepairApp() {
                   try {
                     await syncPendingQueueToCloud();
                     alert(navigator.onLine ? '申请已提交，感谢您的贡献！' : '已保存，将在网络恢复后自动提交。');
-                  } catch {
-                    alert('已离线保存，将在网络恢复后自动提交。');
+                  } catch (e) {
+                    console.error('提交失败:', e);
+                    alert('已离线保存，将在网络恢复后自动提交。错误: ' + (e instanceof Error ? e.message : String(e)));
                   }
 
                   e.target.reset();

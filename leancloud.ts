@@ -1,7 +1,7 @@
 // LeanCloud 简单封装：用于提交 / 获取 / 删除建议
 
 const LC_APP_ID = 'xegU5T8vyoo8t6jK4SWAQMP5-gzGzoHsz';
-const LC_APP_KEY = 'fw4sBVxowW6G4db1MARWy9UBG';
+const LC_APP_KEY = 'fw4sBvxoW6G4dblMARWy9UBG';
 const LC_SERVER_URL = 'https://xegu5t8v.lc-cn-n1-shared.com';
 
 export interface LCPendingRequestPayload {
@@ -25,7 +25,9 @@ export async function lcCreatePendingRequest(
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
-    throw new Error(`LeanCloud create failed: ${res.status}`);
+    const errorText = await res.text();
+    console.error('LeanCloud 创建失败:', res.status, errorText);
+    throw new Error(`LeanCloud create failed: ${res.status} - ${errorText}`);
   }
   const data = await res.json();
   return data.objectId as string;
@@ -43,7 +45,9 @@ export async function lcFetchPendingRequests(): Promise<LCPendingRequest[]> {
     },
   );
   if (!res.ok) {
-    throw new Error(`LeanCloud fetch failed: ${res.status}`);
+    const errorText = await res.text();
+    console.error('LeanCloud 获取失败:', res.status, errorText);
+    throw new Error(`LeanCloud fetch failed: ${res.status} - ${errorText}`);
   }
   const data = await res.json();
   const results = (data.results || []) as any[];
