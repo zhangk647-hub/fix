@@ -18,8 +18,12 @@ export default defineConfig(({ mode }) => {
           registerType: 'autoUpdate',
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-            // 设置相对路径前缀
-            navigateFallback: './index.html'
+            // 使用相对路径，适配 GitHub Pages 子路径部署
+            navigateFallback: './index.html',
+            // 确保 Service Worker 范围正确
+            cleanupOutdatedCaches: true,
+            skipWaiting: true,
+            clientsClaim: true
           },
           includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', 'jia_512.png'],
           manifest: {
@@ -30,6 +34,7 @@ export default defineConfig(({ mode }) => {
             background_color: '#ffffff',
             display: 'standalone',
             start_url: './', // 使用相对路径
+            scope: './', // Service Worker 作用域
             icons: [
               {
                 src: 'jia_512.png',

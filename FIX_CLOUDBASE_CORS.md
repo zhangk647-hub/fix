@@ -101,3 +101,26 @@ zhangk647-hub.github.io/fix      ❌ 缺少协议且包含路径
 
 告诉我结果，我会进一步帮你解决！
 
+## 🔧 Service Worker 404 错误修复
+
+如果看到 Service Worker 404 错误：
+```
+Failed to register a ServiceWorker: A bad HTTP response code (404) 
+was received when fetching the script.
+```
+
+这通常是因为路径问题。已通过更新 `vite.config.ts` 配置修复。请执行以下步骤：
+
+1. **重新构建并部署**：
+   ```bash
+   npm run build
+   git add .
+   git commit -m "Fix Service Worker path configuration"
+   git push origin main
+   ```
+
+2. **等待 GitHub Actions 完成部署**（约 1-2 分钟）
+
+3. **清除浏览器缓存**后重新访问网站
+
+
