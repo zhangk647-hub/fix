@@ -1,6 +1,8 @@
+import cloudbase from "@cloudbase/js-sdk";
+
 // 腾讯云开发环境配置
 const TENCENT_CLOUD_CONFIG = {
-  env: 'your-tencent-cloud-env-id', // 替换为您的腾讯云环境ID
+  env: 'cloud1-0g7vmmxz0edb5524', // 已更新为您的腾讯云环境ID
   database: {
     pendingRequestsCollection: 'pendingRequests' // 待审批请求集合名
   }
@@ -23,48 +25,64 @@ export interface TCPendingRequest {
 // 腾讯云基础类
 class TencentCloudBase {
   private env: string;
-  private initialized: boolean = false;
+  private initPromise: Promise<void> | null = null;
+  app: any = null;
+  db: any = null;
 
   constructor(env: string) {
     this.env = env;
   }
 
-  private async init() {
-    if (this.initialized) return;
-    
-    // 检查是否在浏览器环境中
-    if (typeof window === 'undefined') {
-      throw new Error('TencentCloudBase must be used in browser environment');
+  init(): Promise<void> {
+    if (this.initPromise) {
+      return this.initPromise;
     }
 
-    // 动态加载腾讯云开发SDK
-    if (!window.cloud) {
-      const script = document.createElement('script');
-      script.src = 'https://imgcache.qq.com/qcloud/cloudbase-js-sdk/1.7.1/cloudbase.full.js';
-      document.head.appendChild(script);
-      
-      await new Promise((resolve) => {
-        script.onload = resolve;
-      });
-    }
+    this.initPromise = (async () => {
+      try {
+        console.log("Tencent CloudBase initializing...");
+        // 初始化云开发环境并获取应用实例
+        this.app = cloudbase.init({
+          env: this.env
+        });
 
-    // 初始化云开发环境
-    window.cloud.init({
-      env: this.env
-    });
+        // 匿名登录
+        const auth = this.app.auth();
+        const loginState = await auth.getLoginState();
 
-    this.initialized = true;
+        if (!loginState) {
+          console.log("No login state, signing in anonymously...");
+          await auth.signInAnonymously();
+          console.log("Anonymous sign-in successful.");
+        } else {
+          console.log("Existing login state found.");
+        }
+
+        // 获取数据库实例
+        this.db = this.app.database();
+        console.log("Tencent CloudBase initialized successfully.");
+      } catch (error) {
+        console.error('腾讯云初始化失败:', error);
+        // Reset promise on failure to allow retries
+        this.initPromise = null; 
+        throw new Error('Cloudbase initialization failed: ' + (error as Error).message);
+      }
+    })();
+
+    return this.initPromise;
   }
 
-  private async getDatabase() {
+  // 获取数据库实例
+  async getDatabase() {
     await this.init();
-    return window.cloud.database();
+    return this.db;
   }
 
   // 调用云函数
   async callFunction(name: string, data: any) {
     await this.init();
-    return window.cloud.callFunction({
+    if (!this.app) throw new Error("Cloudbase not initialized");
+    return this.app.callFunction({
       name,
       data
     });
@@ -72,7 +90,9 @@ class TencentCloudBase {
 
   // 数据库操作
   async database() {
-    return this.getDatabase();
+    await this.init();
+    if (!this.db) throw new Error("Database not initialized");
+    return this.db;
   }
 }
 
