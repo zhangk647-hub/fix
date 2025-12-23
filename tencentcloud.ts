@@ -61,11 +61,18 @@ class TencentCloudBase {
         // 获取数据库实例
         this.db = this.app.database();
         console.log("Tencent CloudBase initialized successfully.");
-      } catch (error) {
+      } catch (error: any) {
         console.error('腾讯云初始化失败:', error);
+        const errorMessage = error?.message || error?.code || String(error);
+        const errorCode = error?.code || error?.statusCode || 'UNKNOWN';
+        console.error('错误详情:', {
+          message: errorMessage,
+          code: errorCode,
+          error: error
+        });
         // Reset promise on failure to allow retries
         this.initPromise = null; 
-        throw new Error('Cloudbase initialization failed: ' + (error as Error).message);
+        throw new Error(`Cloudbase initialization failed: ${errorMessage} (Code: ${errorCode})`);
       }
     })();
 
