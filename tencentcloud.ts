@@ -4,7 +4,9 @@ import cloudbase from "@cloudbase/js-sdk";
 const TENCENT_CLOUD_CONFIG = {
   env: 'cloud1-0g7vmmxz0edb5524', // 已更新为您的腾讯云环境ID
   database: {
-    pendingRequestsCollection: 'pendingRequests' // 待审批请求集合名
+    pendingRequestsCollection: 'pendingRequests', // 待审批请求集合名
+    faultsCollection: 'faults', // 故障代码集合名
+    faultsDocId: 'faults_list' // 故障代码列表文档ID（固定ID）
   }
 };
 
@@ -156,6 +158,56 @@ export async function tcDeletePendingRequest(id: string): Promise<void> {
     await db.collection(TENCENT_CLOUD_CONFIG.database.pendingRequestsCollection).doc(id).remove();
   } catch (error) {
     console.error('删除待审批请求失败:', error);
+    throw error;
+  }
+}
+
+// 故障代码相关接口
+export interface TCFaultCode {
+  code: string;
+  description: string;
+  solutions: Array<{
+    id: string;
+    text: string;
+    isApproved: boolean;
+    author: 'system' | 'technician';
+  }>;
+}
+
+// 获取所有故障代码（从云端）
+export async function tcFetchFaults(): Promise<TCFaultCode[]> {
+  try {
+    const db = await tcBase.database();
+    const doc = await db.collection(TENCENT_CLOUD_CONFIG.database.faultsCollection)
+      .doc(TENCENT_CLOUD_CONFIG.database.faultsDocId)
+      .get();
+    
+    if (doc.data && doc.data.faults) {
+      return doc.data.faults as TCFaultCode[];
+    }
+    return [];
+  } catch (error) {
+    // 如果文档不存在，返回空数组
+    if (error && (error as any).code === -1) {
+      return [];
+    }
+    console.error('获取故障代码失败:', error);
+    throw error;
+  }
+}
+
+// 保存所有故障代码（到云端）
+export async function tcSaveFaults(faults: TCFaultCode[]): Promise<void> {
+  try {
+    const db = await tcBase.database();
+    await db.collection(TENCENT_CLOUD_CONFIG.database.faultsCollection)
+      .doc(TENCENT_CLOUD_CONFIG.database.faultsDocId)
+      .set({
+        faults: faults,
+        updatedAt: new Date()
+      });
+  } catch (error) {
+    console.error('保存故障代码失败:', error);
     throw error;
   }
 }

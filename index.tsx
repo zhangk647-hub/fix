@@ -24,7 +24,13 @@ import {
 } from 'lucide-react';
 
 // 导入腾讯云服务
-import { tcCreatePendingRequest, tcFetchPendingRequests, tcDeletePendingRequest } from './tencentcloud';
+import { 
+  tcCreatePendingRequest, 
+  tcFetchPendingRequests, 
+  tcDeletePendingRequest,
+  tcFetchFaults,
+  tcSaveFaults
+} from './tencentcloud';
 
 // --- 类型定义 ---
 
@@ -92,43 +98,96 @@ function ACRepairApp() {
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 数据持久化
+  // 数据持久化（从云端加载）
   useEffect(() => {
-    const savedFaults = localStorage.getItem('ac_faults');
-    const savedRequests = localStorage.getItem('ac_pending');
-    if (savedFaults) {
-      setFaults(JSON.parse(savedFaults));
-    } else {
-      setFaults(INITIAL_FAULTS);
-      localStorage.setItem('ac_faults', JSON.stringify(INITIAL_FAULTS));
-    }
-    if (savedRequests) setPendingRequests(JSON.parse(savedRequests));
-    
-    // 从腾讯云获取最新的待审批请求
+    // 从腾讯云获取故障代码列表和待审批请求
     const fetchFromCloud = async () => {
       try {
-        const cloudRequests = await tcFetchPendingRequests();
-        if (cloudRequests.length > 0) {
-          const requests: PendingRequest[] = cloudRequests.map(req => ({
-            id: req._id,
-            faultCode: req.faultCode,
-            solutionText: req.solutionText,
-            timestamp: req.timestamp
-          }));
-          setPendingRequests(requests);
-          localStorage.setItem('ac_pending', JSON.stringify(requests));
+        // 1. 获取故障代码列表（优先使用云端数据）
+        try {
+          const cloudFaults = await tcFetchFaults();
+          if (cloudFaults && cloudFaults.length > 0) {
+            setFaults(cloudFaults);
+            localStorage.setItem('ac_faults', JSON.stringify(cloudFaults));
+          } else {
+            // 如果云端没有数据，检查本地是否有数据
+            const savedFaults = localStorage.getItem('ac_faults');
+            if (savedFaults) {
+              const localFaults = JSON.parse(savedFaults);
+              setFaults(localFaults);
+              // 将本地数据同步到云端（首次使用）
+              await tcSaveFaults(localFaults);
+            } else {
+              // 既没有云端数据也没有本地数据，使用初始数据并上传
+              setFaults(INITIAL_FAULTS);
+              localStorage.setItem('ac_faults', JSON.stringify(INITIAL_FAULTS));
+              await tcSaveFaults(INITIAL_FAULTS);
+            }
+          }
+        } catch (error) {
+          console.error('从腾讯云获取故障代码失败，使用本地数据:', error);
+          // 如果云端获取失败，使用本地数据
+          const savedFaults = localStorage.getItem('ac_faults');
+          if (savedFaults) {
+            setFaults(JSON.parse(savedFaults));
+          } else {
+            setFaults(INITIAL_FAULTS);
+            localStorage.setItem('ac_faults', JSON.stringify(INITIAL_FAULTS));
+          }
+        }
+
+        // 2. 获取待审批请求
+        try {
+          const cloudRequests = await tcFetchPendingRequests();
+          if (cloudRequests.length > 0) {
+            const requests: PendingRequest[] = cloudRequests.map(req => ({
+              id: req._id,
+              faultCode: req.faultCode,
+              solutionText: req.solutionText,
+              timestamp: req.timestamp
+            }));
+            setPendingRequests(requests);
+            localStorage.setItem('ac_pending', JSON.stringify(requests));
+          } else {
+            // 如果云端没有数据，使用本地数据
+            const savedRequests = localStorage.getItem('ac_pending');
+            if (savedRequests) setPendingRequests(JSON.parse(savedRequests));
+          }
+        } catch (error) {
+          console.error('从腾讯云获取待审批请求失败，使用本地数据:', error);
+          const savedRequests = localStorage.getItem('ac_pending');
+          if (savedRequests) setPendingRequests(JSON.parse(savedRequests));
         }
       } catch (error) {
-        console.error('从腾讯云获取待审批请求失败:', error);
+        console.error('云端数据加载失败:', error);
+        // 完全失败时，使用本地数据
+        const savedFaults = localStorage.getItem('ac_faults');
+        const savedRequests = localStorage.getItem('ac_pending');
+        if (savedFaults) setFaults(JSON.parse(savedFaults));
+        else {
+          setFaults(INITIAL_FAULTS);
+          localStorage.setItem('ac_faults', JSON.stringify(INITIAL_FAULTS));
+        }
+        if (savedRequests) setPendingRequests(JSON.parse(savedRequests));
       }
     };
     
     fetchFromCloud();
   }, []);
 
-  const updateFaults = (newFaults: FaultCode[]) => {
+  const updateFaults = async (newFaults: FaultCode[]) => {
     setFaults(newFaults);
     localStorage.setItem('ac_faults', JSON.stringify(newFaults));
+    
+    // 同步到云端（异步，不影响界面响应）
+    try {
+      await tcSaveFaults(newFaults);
+      console.log('故障代码已同步到云端');
+    } catch (error) {
+      console.error('故障代码同步到云端失败:', error);
+      // 即使同步失败，本地数据已经更新，不影响使用
+    }
+    
     // 如果正在编辑某个故障，同步更新
     if (selectedFault) {
       const updated = newFaults.find(f => f.code === selectedFault.code);
@@ -736,7 +795,8 @@ function ACRepairApp() {
                            }
                            return f;
                          });
-                         updateFaults(newFaults);
+                         // 先更新故障代码（会同步到云端），再删除待审核记录
+                         await updateFaults(newFaults);
                          await removePendingRequest(req.id);
                        }}
                        className="flex-1 py-4 rounded-2xl bg-green-500 text-white text-sm font-black flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-green-200"
