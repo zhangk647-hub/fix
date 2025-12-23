@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
           registerType: 'autoUpdate',
           workbox: {
             globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-            // 使用相对路径，适配 GitHub Pages 子路径部署
+            // 使用相对路径，适配 GitHub Pages 部署
             navigateFallback: './index.html',
             // 确保 Service Worker 范围正确
             cleanupOutdatedCaches: true,

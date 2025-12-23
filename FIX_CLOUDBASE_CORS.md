@@ -28,11 +28,11 @@ cloud1-0g7vmmxz0edb5524 domains (Code: 7)
 
 2. **添加域名**：
    - 点击 **"添加域名"** 或 **"添加"** 按钮
-   - 输入：`https://zhangk647-hub.github.io`
+   - 输入：`zhangk647-hub.github.io`
    - **重要**：
-     - ✅ 必须包含 `https://` 协议
+     - ✅ **不要包含** `https://` 协议（系统会自动处理）
      - ✅ 只填写域名，不要加路径（不要加 `/fix`）
-     - ✅ 域名格式：`https://zhangk647-hub.github.io`
+     - ✅ 域名格式：`zhangk647-hub.github.io`
 
 3. **保存**：
    - 点击 **"确定"** 或 **"保存"**
@@ -72,19 +72,19 @@ cloud1-0g7vmmxz0edb5524 domains (Code: 7)
 
 **正确格式：**
 ```
-https://zhangk647-hub.github.io
+zhangk647-hub.github.io
 ```
 
 **错误格式（不要这样）：**
 ```
-zhangk647-hub.github.io          ❌ 缺少 https://
-https://zhangk647-hub.github.io/fix  ❌ 包含路径
-zhangk647-hub.github.io/fix      ❌ 缺少协议且包含路径
+https://zhangk647-hub.github.io       ❌ 不要包含 https://
+zhangk647-hub.github.io/fix          ❌ 包含路径
+https://zhangk647-hub.github.io/fix  ❌ 包含协议和路径
 ```
 
 ## ⚠️ 注意事项
 
-1. **协议必须包含**：必须是 `https://`，不能只是域名
+1. **不要包含协议**：只填写域名，不要加 `https://`
 2. **不要包含路径**：只填写域名，不要加 `/fix` 或其他路径
 3. **配置生效需要时间**：添加后等待 1-2 分钟再测试
 4. **清除浏览器缓存**：配置后建议清除缓存或使用无痕模式测试
@@ -93,7 +93,7 @@ zhangk647-hub.github.io/fix      ❌ 缺少协议且包含路径
 
 如果添加域名后仍然有 CORS 错误：
 
-1. **检查域名格式是否正确**（是否包含 `https://`）
+1. **检查域名格式是否正确**（不要包含 `https://`，只填写纯域名）
 2. **等待更长时间**（可能需要 3-5 分钟）
 3. **清除浏览器缓存**后重试
 4. **使用无痕模式**测试
