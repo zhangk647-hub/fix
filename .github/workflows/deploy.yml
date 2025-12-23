@@ -1,16 +1,21 @@
-name: Deploy to CloudBase Static Hosting
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches:
       - main # 主分支推送时触发
-  pull_request:
-    branches:
-      - main # PR时触发（可选）
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
     - name: Checkout code
@@ -28,19 +33,14 @@ jobs:
     - name: Build project
       run: npm run build
 
-    - name: Install CloudBase CLI
-      run: npm install -g @cloudbase/cli
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
 
-    - name: Login CloudBase CLI
-      run: tcb login --apiKeyId ${{ secrets.TCB_SECRET_ID }} --apiKey ${{ secrets.TCB_SECRET_KEY }}
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './dist'
 
-    - name: Deploy to CloudBase Static Hosting
-      run: tcb hosting deploy ./dist / -e ${{ secrets.TCB_ENV_ID }}
-
-    - name: Deploy success notification
-      if: success()
-      run: echo "🎉 部署成功！项目已发布到 CloudBase 静态托管"
-
-    - name: Deploy failure notification
-      if: failure()
-      run: echo "❌ 部署失败，请检查配置和日志"
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
