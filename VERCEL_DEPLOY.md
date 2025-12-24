@@ -78,3 +78,5 @@ https://你的项目名.vercel.app
 - 确认腾讯云环境 ID 是否正确
 - 确认数据库集合 `pendingRequests` 已创建
 
+
+

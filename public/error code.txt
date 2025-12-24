@@ -1,0 +1,612 @@
+Code: 01
+Description: 室内机保护装置动作（浮子开关）
+Solutions:
+1.  检查接水盘是否水位过高
+2.  检查排水管、浮子开关或排水泵是否异常
+3.  检查软件工装中的浮子开关是否未短接
+
+Code: 02
+Description: 外机保护装置动作（高压压力开关）
+Solutions:
+1.  检查配管是否堵塞
+2.  检查制冷剂是否充注过量
+3.  检查是否有不凝性气体混入
+4.  检查基板是否故障
+5.  检查软件工装基板上高压开关是否未短接
+
+Code: 03
+Description: 室内机与室外机间通讯异常
+Solutions:
+1.  检查室外机和室内机间通信线是否连接错误、断线或混接
+2.  检查室外机电源是否关闭
+3.  检查室外机通讯保险丝是否熔断
+4.  检查室内外机系统号是否不匹配
+
+Code: 04
+Description: 变频控制基板与室外机基板间通讯异常
+Solutions:
+1.  检查连接线是否松动
+2.  检查接线是否错误
+3.  检查保险丝是否熔断
+
+Code: 05
+Description: 室外风扇控制基板与室外机基板间通讯异常
+Solutions:
+1.  检查连接线是否松动
+2.  检查接线是否错误
+3.  检查保险丝是否熔断
+
+Code: 06
+Description: 电源相序异常
+Solutions:
+1.  检查电源是否正确
+2.  检查电源接线是否缺相
+3.  检查电源相位是否接错
+4.  检查软件工装是否没有屏蔽三相电
+
+Code: 07
+Description: 变频器电压异常
+Solutions:
+1.  检查室外机电源电压是否过低
+2.  检查电源容量是否不够
+3.  检查压缩机变频模块控制板是否故障
+
+Code: 08
+Description: 室外机风扇控制基板电压异常
+Solutions:
+1.  检查风扇控制模块电压是否异常
+2.  检查风扇模块是否故障
+
+Code: 09
+Description: 排气过热度Tdsh过低
+Solutions:
+1.  检查制冷剂是否充注过多
+2.  检查温度传感器是否故障
+3.  检查电子膨胀阀是否故障
+4.  检查配管连接是否错误
+
+Code: 0A
+Description: 压缩机顶部温度Td过高异常
+Solutions:
+1.  检查压缩机是否不良
+2.  检查冷媒是否不足
+3.  检查配管连接是否错误
+4.  检查管路是否堵塞
+
+Code: 0C
+Description: 室外机风扇内置温感检测温度过高；或水源机水温异常
+Solutions:
+1.  检查室外风扇电机是否过热
+2.  检查软件工装49FE是否没有短接
+
+Code: 0D
+Description: 室外机与室外机间通讯异常
+Solutions:
+1.  检查室外机间通讯线是否连接错误或断线
+2.  检查端子是否松动
+
+Code: 0E
+Description: 室外机子模块设定错误
+Solutions:
+1.  检查同一室外机系统中子模块设定是否正确
+
+Code: 0F
+Description: 室外机主模块设定错误
+Solutions:
+1.  检查同一室外机系统中是否设定了两个主模块
+
+Code: 10
+Description: 水热源水温异常
+Solutions:
+1.  检查水热源的温度是否过低
+
+Code: 11
+Description: 湿度传感器异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: 12
+Description: 室内机回风温度传感器Ti异常或水模块进水温度传感器Twi异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: 13
+Description: 室内机出风温度传感器To异常或水模块出水温度传感器Two异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: 14
+Description: 室内机液管温度传感器TI异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: 15
+Description: 室内机气管温度传感器Tg异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: 16
+Description: 全热交换器环境温度传感器异常或水模块出水口Two2温度传感器异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: 17
+Description: 新风机远程传感器异常或远程温度传感器异常或水模块水箱水温传感器TDHW异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: 18
+Description: 线控器内置传感器异常或水模块板换出口水温传感器TWOHP异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: 19
+Description: 室内风扇电机温度传感器异常、室内风驱报警风机不动作、失步检出。或水模块出水口3温度传感器异常或水压压力传感器异常
+Solutions:
+1.  检查室内风扇电机是否异常过热、堵转或传感器异常
+2.  检查传感器配线是否误接线、断线或短路
+3.  检查基板是否故障
+
+Code: 1A
+Description: 室内机风扇电机保护装置动作
+Solutions:
+1.  检查风扇电机是否堵转、过热
+2.  检查电机保护回路是否断开
+3.  检查软件工装49FE是否未短接或未接电机
+4.  检查机种或容量设定是否错误
+
+Code: 1B
+Description: 室内风驱报警
+Solutions:
+1.  检查是否存在电流保护、欠电压保护或短路保护
+
+Code: 1C
+Description: 室内风驱报警
+Solutions:
+1.  检查电机运转中，电机电流是否连续30秒超过电流保护设定值（瞬时过电流）
+2.  检查是否缺相
+3.  检查是否未接电机
+
+Code: 1D
+Description: 室内风驱报警、欠电压
+Solutions:
+1.  没有特别备注
+
+Code: 21
+Description: 压机顶部温度传感器Td异常或多管机室热交换器盘管中间温度传感器异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: 39
+Description: 压缩比过低保护动作
+Solutions:
+1.  检查压缩机是否不良或故障
+2.  检查变频器是否故障
+3.  检查电源是否异常
+4.  根据排气压力(Pd)和吸气压力(Ps)计算压缩比 {(Pd+0.1)/(Ps+0.1)}，判断是否过低
+
+Code: 43
+Description: 低压压力过高保护动作
+Solutions:
+1.  检查冷媒是否过多
+2.  检查四通阀是否误动作
+
+Code: 44
+Description: 高压压力过高保护动作
+Solutions:
+1.  检查是否过负荷运行
+2.  检查热交换器是否阻塞或回风短路
+3.  检查冷媒配管是否堵塞
+4.  检查冷媒是否过多
+
+Code: 45
+Description: 高压压力过低保护动作
+Solutions:
+1.  检查冷媒是否不足
+
+Code: 46
+Description: 低压压力过低保护动作
+Solutions:
+1.  检查制冷剂是否不足或泄漏
+2.  检查冷媒配管是否阻塞
+3.  检查膨胀阀是否故障
+
+Code: 47
+Description: 压机变频器过电流保护动作
+Solutions:
+1.  检查是否过负荷运行
+2.  检查压缩机是否故障
+
+Code: 48
+Description: 传感器配线误接线、断线、短路，基板故障。
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: 49
+Description: 压缩机变频器检测到过电流保护动作
+Solutions:
+1.  检查变频器是否控制错误（过电流，过电压，短路保护）
+2.  检查是否出现瞬间过电流
+
+Code: 51
+Description: 压缩机变频器检测到异常
+Solutions:
+1.  检查变频器控制是否错误（过电流，过电压，短路保护）
+2.  检查是否出现瞬间过电流
+
+Code: 52
+Description: 压缩机变频器温感过热
+Solutions:
+1.  检查温度传感器是否异常
+2.  检查换热器是否堵塞
+3.  检查风扇电机是否故障
+
+Code: 53
+Description: 压缩机变频器不动作
+Solutions:
+1.  检查变频器基板是否故障
+
+Code: 54
+Description: 风扇位置检测异常
+Solutions:
+1.  检查位置检出状况是否异常
+2.  检查位置检出回路是否异常
+
+Code: 55
+Description: 风记控制基板保护动作或多管机室外机风记电机异常或水源机水流开关异常
+Solutions:
+1.  检查风扇控制基板控制是否错误（过电流，过电压，短路保护）或存在瞬间过电流
+2.  检查控制基板一变频基板一风扇电机连接配线是否断线或误接线
+3.  检查水源机水流量是否太小
+
+Code: 56
+Description: 风扇控制异常
+Solutions:
+1.  检查是否起动失败
+2.  检查速度是否异常
+3.  检查芯片是否重置
+
+Code: 57
+Description: 室外机风扇变频器电流保护动作（AC斩波器回路异常）
+Solutions:
+1.  检查AC斩波器基板是否故障
+2.  检查电流传感器(CT)是否故障
+
+Code: 58
+Description: 风扇控制基板温度上升保护
+Solutions:
+1.  检查温度传感器是否异常
+2.  检查换热器是否堵塞
+3.  检查风扇电机是否故障
+
+Code: 59
+Description: 风扇控制基板过电流保护
+Solutions:
+1.  检查风扇电机是否故障
+
+Code: 5A
+Description: 风扇控制基板电流传感器异常
+Solutions:
+1.  检查风驱基板是否异常
+2.  检查电流传感器是否故障
+
+Code: 62
+Description: 集控器与室外机间通信异常（该系统有1台以上室内机运行时）
+Solutions:
+1.  检查室外机运行中是否与集控器断开连接
+
+Code: 63
+Description: 集控器与室外机间通信和异常（该系统所有室内机停机时）
+Solutions:
+1.  检查室外机停止时是否与集控器断开连接
+
+Code: 64
+Description: H-LINKII对应/未对应设定错误
+Solutions:
+1.  请确认中央控制器以及并用的中央控制器的DSW2-4 H-LINKII 对应/未对应设置
+2.  与其他集控器并用时也可能报63警报
+
+Code: 71
+Description: 水异常报警（低水量低水压）
+Solutions:
+1.  检查水流量是否不够或者水压不够
+2.  检查水于开关（对应工装FS）是否断开
+3.  软件工装针对AC水泵机型，保持FS闭合即可
+4.  针对DC水泵机型，可通过水模块机能选择项目进行屏蔽
+
+Code: 72
+Description: 水箱电加热器异常
+Solutions:
+1.  检查水箱电加热配线是否错误
+2.  软件工装检查DHW Heat (PCN4-3) 端子是否短接
+
+Code: 73
+Description: 水模块电加热器异常
+Solutions:
+1.  检查电加热配线是否错误
+2.  软件工装检查Heat (PCN5-3) 端子是否短接
+
+Code: 74
+Description: 水流开关异常
+Solutions:
+1.  检查停机状态下水流开关是否闭合
+2.  检查水流开关配线是否接错或损坏
+3.  可通过机能选择73开关屏蔽该报警
+
+Code: 75
+Description: c2_water过热保护
+Solutions:
+1.  检查压缩机是否运行中或锅炉是否给出ON信号
+2.  检查WP2是否ON且水模块是否为制热模式
+3.  检查线控器c2_water是否ON且overT_offset是否为非OFF
+4.  检查Two2温度是否超过c2_water_h_max + overT_offset达10分钟
+
+Code: 76
+Description: 水泵异常保护
+Solutions:
+1.  检查水泵是否堵转
+2.  检查水泵与基板连接线是否脱落
+3.  检查Twi、Two传感器是否正常
+
+Code: 77
+Description: 冻结防止/低压压力低下异常
+Solutions:
+1.  检查水模块出水是否冻结
+2.  检查制冷低压压力是否低下
+
+Code: 78
+Description: 水泵水流量异常
+Solutions:
+1.  检查水泵反馈水流量是否偏低
+2.  DSW5-1设置为ON可屏蔽此报警
+
+Code: 79
+Description: 通讯异常
+Solutions:
+1.  检查室外机机种是否错误
+2.  检查水模块是否与非对应室外机相连
+
+Code: 7A
+Description: 水压过低或水流量过小或水模块液管冻结
+Solutions:
+1.  当发生70、76和77报警时，水模块与线控器显示当下报警，但外机基板会显示7A。请按照70、76和77的排除方法操作
+
+Code: 7B
+Description: 水模块通讯异常（外机报）
+Solutions:
+1.  检查外机机型与水模块联机方案是否不匹配导致报警
+2.  当系统连接水模块时，外机DSW6-3需设为on
+3.  当系统未连接水模块时，DSW6-3需设为off
+
+Code: 7C
+Description: 通讯异常（室内机和室外机通讯异常）
+Solutions:
+1.  检查室内机和室外机通讯是否异常
+
+Code: 7D
+Description: 变频水泵异常
+Solutions:
+1.  检查水泵是否堵转
+2.  可通过机能选择进行屏蔽
+
+Code: 7E
+Description: 通讯异常（线控器和水模块通讯异常持续5min）
+Solutions:
+1.  检查线控器和水模块通讯是否异常持续5分钟
+
+Code: 7F
+Description: 水泵驱动板通讯异常
+Solutions:
+1.  检查通讯线是否连接错误
+
+Code: 96
+Description: KPI房间温度传感器异常 (FSN)
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: 97
+Description: KPI室外温度传感器异常 (FSN)
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: A2
+Description: 3D风口水平摆页1故障或ATW产品传感器异常
+Solutions:
+1.  检查摆页是否未连接
+2.  检查基板是否故障
+3.  检查ATW产品传感器是否异常
+
+Code: EE
+Description: EEPROM异常、DC机电源板E方错误
+Solutions:
+1.  检查EEPROM是否故障或者EEPROM内部参数是否有问题
+2.  检查DC机电源板E方是否错误，请检查机种拨码
+
+Code: F5
+Description: 3D风口通信故障或ATW产品传感器异常
+Solutions:
+1.  检查ATW产品传感器是否异常
+
+Code: F6
+Description: 冷媒散热进温度传感器Tsc异常
+Solutions:
+1.  检查因冷媒过少或EVO电子膨胀阀异常导致的报警
+
+Code: E1
+Description: 高压压力传感器Pd异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: E2
+Description: 外气温度传感器Ta异常、水源室外机进水温度传感器异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: E3
+Description: 压缩机顶部温度传感器Td异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: E4
+Description: 室外换热器液管温度传感器Te异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: E5
+Description: 室外换热器气管温度传感器Tg异常或多管机室外冻结温度传感器TL1异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: E6
+Description: 室外出水温度传感器异常或多管机室外和气管温度传感器Tg1异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: E7
+Description: 水源机二重管气管出口温度传感器异常或多管机室外冻结温度传感器TL2异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: E8
+Description: 变频一拖一散热片温度传感器异常或多管机室外和气管温度传感器Tg2异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: E9
+Description: 低压压力传感器Ps异常或多管机室外冻结温度传感器TL3异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: EA
+Description: 热交换器回水温度传感器 (Twi) 异常或水热源水温传感器异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: EB
+Description: 电器盒内空气温度传感器或水-毛热交出水温度传感器Two异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: EC
+Description: 热水水箱温度传感器TDHW异常
+Solutions:
+1.  检查传感器配线是否误接线、断线或短路
+2.  检查基板是否故障
+
+Code: ED
+Description: CH装置连接错误或多管机室外和气管温度传感器Tg3异常
+Solutions:
+1.  检查室外机组-室内机组之间CH装置是否2台以上连接
+2.  检查传感器配线是否误接线、断线或短路
+3.  检查基板是否故障
+
+Code: F0
+Description: 室内外机容量组合异常
+Solutions:
+1.  检查内外机容量配比是否错误
+2.  检查接线是否错误
+3.  检查容量拨码开关是否错误
+4.  检查系统编号设定是否错误
+5.  检查是否存在通讯错误、断线或误配线
+
+Code: F1
+Description: 正常内机掉线或多管机室外冻结温度传感器TL4异常
+Solutions:
+1.  情况一：一台室内机出故障，其他室内机在收到这台室内机发出的数据信号之后超过60分钟没有再收到它发出的数据信号，在其他室内机的遥控器上将显示故障代码。
+2.  情况二：检查多管机传感器配线是否误接线、断线或短路
+3.  检查基板是否故障
+
+Code: F2
+Description: 选购件加热器、加湿器等异常或多管机室外气管温度传感器Tg4异常
+Solutions:
+1.  情况一：检查选购件保护装置是否作动、保护装置是否异常、室内风扇是否停止
+2.  情况二：检查传感器配线是否误接线、断线或短路
+3.  检查基板是否故障
+
+Code: F3
+Description: 外机或者内机编号重复/线控器地址设定错误
+Solutions:
+1.  情况一：检查系统中是否有重复的内外机地址号系统号。室外机接通电源三分钟后，如果设定的室内机的编号重复，将显示故障代码。
+2.  情况二：检查同一水系统内的不同的室内机线控器是否设为同一地址
+
+Code: F4
+Description: 室内外机组合错误或品牌错误
+Solutions:
+1.  没有特别备注
+
+Code: F7
+Description: 连接的水模块的编号设置错误
+Solutions:
+1.  检查室外机机能选择n3功能设定值是否错误
+2.  检查水模块电源是否异常
+
+Code: F8
+Description: 室外机保护电路动作
+Solutions:
+1.  检查室外机高压开关是否断开
+2.  检查接线是否错误
+3.  检查室外机基板的配线是否有错误接线
+
+Code: F9
+Description: 定速压机过电流或者零电流
+Solutions:
+1.  检查是否过电流、零电流
+2.  检查电流互感器是否异常
+3.  检查电源电压是否异常
+
+Code: FA
+Description: 室外机组合模块台数大于四台
+Solutions:
+1.  检查室外机与子机是否组合错误
+2.  检查电源设定是否错误
+3.  检查主机和子机的机种或电压设定是否不同
+
+Code: FB
+Description: 室外机主机与子机通讯异常/部分从机丢失异常
+Solutions:
+1.  检查接线是否错误或端子是否松动
+2.  检查与子机的通信是否连续30秒不通
+
+Code: FC
+Description: 变频基板组合异常
+Solutions:
+1.  检查变频基板是否组合错误
+
+Code: FD
+Description: 制冷过负荷保护
+Solutions:
+1.  检查室外机热交换器是否阻塞、短路
+2.  检查室外风扇电机是否故障
+3.  检查换热器是否堵塞、通风不畅
+4.  检查风机是否故障
+
+Code: FE
+Description: 制热过负荷保护
+Solutions:
+1.  检查室外机热交换器是否阻塞、短路
+2.  检查室外风扇电机是否故障
+3.  检查换热器是否堵塞、通风不畅
+4.  检查风机是否故障
