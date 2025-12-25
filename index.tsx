@@ -1127,36 +1127,50 @@ function ACRepairApp() {
     // 从腾讯云获取故障代码列表和待审批请求
     const fetchFromCloud = async () => {
       try {
-        // 1. 获取故障代码列表（优先使用云端数据）
+        // 1. 优先从云端获取故障代码列表
+        let cloudFaults: FaultCode[] | null = null;
         try {
-          const cloudFaults = await tcFetchFaults();
-          if (cloudFaults && cloudFaults.length > 0) {
-            setFaults(cloudFaults);
-            localStorage.setItem('ac_faults', JSON.stringify(cloudFaults));
-          } else {
-            // 如果云端没有数据，检查本地是否有数据
-            const savedFaults = localStorage.getItem('ac_faults');
-            if (savedFaults) {
-              const localFaults = JSON.parse(savedFaults);
-              setFaults(localFaults);
-              // 将本地数据同步到云端（首次使用）
-              await tcSaveFaults(localFaults);
-            } else {
-              // 既没有云端数据也没有本地数据，使用初始数据并上传
-              setFaults(INITIAL_FAULTS);
-              localStorage.setItem('ac_faults', JSON.stringify(INITIAL_FAULTS));
-              await tcSaveFaults(INITIAL_FAULTS);
-            }
-          }
+          cloudFaults = await tcFetchFaults();
+          console.log('从云端获取故障代码成功:', cloudFaults?.length || 0, '条');
         } catch (error) {
-          console.error('从腾讯云获取故障代码失败，使用本地数据:', error);
-          // 如果云端获取失败，使用本地数据
+          console.error('从腾讯云获取故障代码失败:', error);
+        }
+        
+        if (cloudFaults && cloudFaults.length > 0) {
+          // 云端有数据，使用云端数据
+          setFaults(cloudFaults);
+          localStorage.setItem('ac_faults', JSON.stringify(cloudFaults));
+          console.log('使用云端故障代码数据');
+        } else {
+          // 云端没有数据或获取失败，检查本地存储
           const savedFaults = localStorage.getItem('ac_faults');
           if (savedFaults) {
-            setFaults(JSON.parse(savedFaults));
+            const localFaults = JSON.parse(savedFaults);
+            setFaults(localFaults);
+            console.log('使用本地存储的故障代码数据:', localFaults.length, '条');
+            
+            // 如果云端获取失败但本地有数据，尝试将本地数据同步到云端
+            if (!cloudFaults) {
+              try {
+                await tcSaveFaults(localFaults);
+                console.log('本地数据已同步到云端');
+              } catch (syncError) {
+                console.error('本地数据同步到云端失败:', syncError);
+              }
+            }
           } else {
+            // 既没有云端数据也没有本地数据，使用初始数据
             setFaults(INITIAL_FAULTS);
             localStorage.setItem('ac_faults', JSON.stringify(INITIAL_FAULTS));
+            console.log('使用初始故障代码数据');
+            
+            // 尝试将初始数据上传到云端
+            try {
+              await tcSaveFaults(INITIAL_FAULTS);
+              console.log('初始数据已上传到云端');
+            } catch (uploadError) {
+              console.error('初始数据上传到云端失败:', uploadError);
+            }
           }
         }
 
@@ -1172,10 +1186,16 @@ function ACRepairApp() {
             }));
             setPendingRequests(requests);
             localStorage.setItem('ac_pending', JSON.stringify(requests));
+            console.log('从云端获取待审批请求成功:', requests.length, '条');
           } else {
             // 如果云端没有数据，使用本地数据
             const savedRequests = localStorage.getItem('ac_pending');
-            if (savedRequests) setPendingRequests(JSON.parse(savedRequests));
+            if (savedRequests) {
+              setPendingRequests(JSON.parse(savedRequests));
+              console.log('使用本地存储的待审批请求数据');
+            } else {
+              console.log('云端和本地都没有待审批请求数据');
+            }
           }
         } catch (error) {
           console.error('从腾讯云获取待审批请求失败，使用本地数据:', error);
@@ -1183,15 +1203,18 @@ function ACRepairApp() {
           if (savedRequests) setPendingRequests(JSON.parse(savedRequests));
         }
       } catch (error) {
-        console.error('云端数据加载失败:', error);
-        // 完全失败时，使用本地数据
+        console.error('数据加载过程中发生错误:', error);
+        // 完全失败时，使用本地数据或初始数据
         const savedFaults = localStorage.getItem('ac_faults');
         const savedRequests = localStorage.getItem('ac_pending');
-        if (savedFaults) setFaults(JSON.parse(savedFaults));
-        else {
+        
+        if (savedFaults) {
+          setFaults(JSON.parse(savedFaults));
+        } else {
           setFaults(INITIAL_FAULTS);
           localStorage.setItem('ac_faults', JSON.stringify(INITIAL_FAULTS));
         }
+        
         if (savedRequests) setPendingRequests(JSON.parse(savedRequests));
       }
     };
@@ -1304,9 +1327,100 @@ function ACRepairApp() {
     setView('list');
   };
 
-  // 重置数据到初始状态
+  // 清除本地缓存（不覆盖云端数据）
+  const clearLocalCache = async () => {
+    if (confirm('确定要清除本地缓存吗？这将删除本地存储的数据，但不会影响云端数据。下次启动时会从云端重新加载数据。')) {
+      try {
+        // 清除本地存储
+        localStorage.removeItem('ac_faults');
+        localStorage.removeItem('ac_pending');
+        
+        // 重新从云端加载数据
+        try {
+          const cloudFaults = await tcFetchFaults();
+          if (cloudFaults && cloudFaults.length > 0) {
+            setFaults(cloudFaults);
+            localStorage.setItem('ac_faults', JSON.stringify(cloudFaults));
+          } else {
+            // 如果云端没有数据，使用初始数据
+            setFaults(INITIAL_FAULTS);
+            localStorage.setItem('ac_faults', JSON.stringify(INITIAL_FAULTS));
+            await tcSaveFaults(INITIAL_FAULTS);
+          }
+        } catch (error) {
+          console.error('从云端重新加载数据失败:', error);
+          // 如果云端加载失败，使用初始数据
+          setFaults(INITIAL_FAULTS);
+          localStorage.setItem('ac_faults', JSON.stringify(INITIAL_FAULTS));
+        }
+        
+        // 重新加载待审批请求
+        try {
+          const cloudRequests = await tcFetchPendingRequests();
+          if (cloudRequests.length > 0) {
+            const requests: PendingRequest[] = cloudRequests.map(req => ({
+              id: req._id,
+              faultCode: req.faultCode,
+              solutionText: req.solutionText,
+              timestamp: req.timestamp
+            }));
+            setPendingRequests(requests);
+            localStorage.setItem('ac_pending', JSON.stringify(requests));
+          } else {
+            setPendingRequests([]);
+          }
+        } catch (error) {
+          console.error('从云端重新加载待审批请求失败:', error);
+          setPendingRequests([]);
+        }
+        
+        alert('本地缓存已清除，已从云端重新加载数据！');
+      } catch (error) {
+        console.error('清除本地缓存失败:', error);
+        alert('清除本地缓存失败，请检查控制台。');
+      }
+    }
+  };
+
+  // 从云端恢复数据（强制重新同步）
+  const restoreFromCloud = async () => {
+    if (confirm('确定要从云端恢复数据吗？这将用云端的最新数据覆盖本地数据。')) {
+      try {
+        // 从云端加载故障代码
+        const cloudFaults = await tcFetchFaults();
+        if (cloudFaults && cloudFaults.length > 0) {
+          setFaults(cloudFaults);
+          localStorage.setItem('ac_faults', JSON.stringify(cloudFaults));
+          alert(`✅ 已从云端恢复 ${cloudFaults.length} 条故障代码数据`);
+        } else {
+          alert('云端没有故障代码数据');
+        }
+        
+        // 从云端加载待审批请求
+        const cloudRequests = await tcFetchPendingRequests();
+        if (cloudRequests.length > 0) {
+          const requests: PendingRequest[] = cloudRequests.map(req => ({
+            id: req._id,
+            faultCode: req.faultCode,
+            solutionText: req.solutionText,
+            timestamp: req.timestamp
+          }));
+          setPendingRequests(requests);
+          localStorage.setItem('ac_pending', JSON.stringify(requests));
+          alert(`✅ 已从云端恢复 ${cloudRequests.length} 条待审批请求`);
+        } else {
+          alert('云端没有待审批请求数据');
+        }
+      } catch (error) {
+        console.error('从云端恢复数据失败:', error);
+        alert('❌ 从云端恢复数据失败，请检查网络连接');
+      }
+    }
+  };
+
+  // 重置数据到初始状态（覆盖云端数据 - 谨慎使用）
   const resetToInitialData = async () => {
-    if (confirm('确定要重置所有数据到初始状态吗？这将清除本地存储并重新加载初始数据。')) {
+    if (confirm('⚠️ 警告：这将清除所有数据并重置到初始状态，包括云端数据！确定要继续吗？')) {
       try {
         // 清除本地存储
         localStorage.removeItem('ac_faults');
@@ -1320,14 +1434,14 @@ function ACRepairApp() {
         try {
           await tcSaveFaults(INITIAL_FAULTS);
           console.log('初始数据已同步到云端');
+          alert('✅ 数据已重置到初始状态，并已同步到云端！');
         } catch (error) {
           console.error('同步到云端失败，但本地数据已重置:', error);
+          alert('⚠️ 本地数据已重置，但同步到云端失败，请检查网络连接');
         }
-        
-        alert('数据已重置到初始状态！');
       } catch (error) {
         console.error('重置数据失败:', error);
-        alert('重置数据失败，请检查控制台。');
+        alert('❌ 重置数据失败，请检查控制台。');
       }
     }
   };
@@ -1720,6 +1834,36 @@ function ACRepairApp() {
               </button>
 
               <button 
+                onClick={clearLocalCache}
+                className="w-full bg-white p-6 rounded-3xl flex items-center justify-between shadow-md border-l-8 active:scale-98 transition-all"
+                style={{ borderLeftColor: '#4CAF50' }}
+              >
+                <div className="flex items-center gap-5">
+                  <div className="p-3 bg-green-100 rounded-2xl text-green-600"><Save size={24} /></div>
+                  <div className="text-left">
+                    <h3 className="font-bold text-slate-700">清除本地缓存</h3>
+                    <p className="text-xs text-slate-400">删除本地数据，从云端重新加载</p>
+                  </div>
+                </div>
+                <ChevronRight className="text-slate-300" />
+              </button>
+
+              <button 
+                onClick={restoreFromCloud}
+                className="w-full bg-white p-6 rounded-3xl flex items-center justify-between shadow-md border-l-8 active:scale-98 transition-all"
+                style={{ borderLeftColor: '#2196F3' }}
+              >
+                <div className="flex items-center gap-5">
+                  <div className="p-3 bg-blue-100 rounded-2xl text-blue-600"><FileText size={24} /></div>
+                  <div className="text-left">
+                    <h3 className="font-bold text-slate-700">从云端恢复数据</h3>
+                    <p className="text-xs text-slate-400">强制从腾讯云同步最新数据</p>
+                  </div>
+                </div>
+                <ChevronRight className="text-slate-300" />
+              </button>
+
+              <button 
                 onClick={resetToInitialData}
                 className="w-full bg-white p-6 rounded-3xl flex items-center justify-between shadow-md border-l-8 active:scale-98 transition-all"
                 style={{ borderLeftColor: COLORS.danger }}
@@ -1728,7 +1872,7 @@ function ACRepairApp() {
                   <div className="p-3 bg-red-100 rounded-2xl text-red-600"><AlertTriangle size={24} /></div>
                   <div className="text-left">
                     <h3 className="font-bold text-slate-700">重置到初始数据</h3>
-                    <p className="text-xs text-slate-400">清除所有数据并重新加载初始故障代码</p>
+                    <p className="text-xs text-slate-400">⚠️ 清除所有数据并重新加载初始故障代码</p>
                   </div>
                 </div>
                 <ChevronRight className="text-slate-300" />
