@@ -931,14 +931,14 @@ const INITIAL_FAULTS: FaultCode[] = [
     ]
   },
   {
-    code: 'E',
+    code: 'EE',
     description: '压缩机保护',
     solutions: [
       { id: 's297', text: '检查压缩机在6个小时内是否发生3次故障（故障代码：02、07、08、39、43、44、45、47）', isApproved: true, author: 'system' }
     ]
   },
   {
-    code: 'F',
+    code: 'EF',
     description: '水模组异常控制',
     solutions: [
       { id: 's298', text: '检查是否所有Slave都处于报警状态', isApproved: true, author: 'system' }
@@ -1207,8 +1207,16 @@ function ACRepairApp() {
     try {
       await tcSaveFaults(newFaults);
       console.log('故障代码已同步到云端');
+      // 显示成功提示（在管理员界面）
+      if (role === 'admin') {
+        alert('✅ 数据已成功同步到腾讯云');
+      }
     } catch (error) {
       console.error('故障代码同步到云端失败:', error);
+      // 显示错误提示（在管理员界面）
+      if (role === 'admin') {
+        alert('❌ 数据同步到腾讯云失败，请检查网络连接');
+      }
       // 即使同步失败，本地数据已经更新，不影响使用
     }
     
@@ -1586,6 +1594,68 @@ function ACRepairApp() {
                  </form>
                </div>
              </div>
+
+             {/* 上报新故障代码（普通员工） */}
+             <div className="mt-6 pt-6 border-t border-slate-200">
+               <div className="bg-green-600 p-8 rounded-[2rem] text-white shadow-xl">
+                 <h4 className="font-bold text-lg mb-2 flex items-center gap-2">
+                   <Plus size={20} />上报新故障代码
+                 </h4>
+                 <p className="text-green-100 text-sm mb-6">如果您遇到了新的故障代码，可以在此处上报。管理员审核后将添加到系统中。</p>
+                 <form onSubmit={async (e: any) => {
+                   e.preventDefault();
+                   const code = e.target.newCode.value.trim();
+                   const desc = e.target.newDesc.value.trim();
+                   if (!code || !desc) {
+                     alert('请填写完整的故障代码和描述！');
+                     return;
+                   }
+                   
+                   // 检查是否已存在相同的故障代码
+                   if (faults.some(f => f.code === code)) {
+                     alert('该故障代码已存在！');
+                     return;
+                   }
+                   
+                   // 创建待审批的故障代码请求
+                   const newReq: PendingRequest = {
+                     id: Date.now().toString(),
+                     faultCode: code,
+                     solutionText: `新故障代码上报：${desc}。请管理员审核并添加解决方案。`,
+                     timestamp: Date.now()
+                   };
+                   
+                   await addPendingRequest(newReq);
+                   alert('新故障代码已提交审核，感谢您的贡献！');
+                   e.target.reset();
+                 }}>
+                   <div className="space-y-4">
+                     <div>
+                       <label className="block text-green-100 text-sm mb-2">故障代码</label>
+                       <input 
+                         name="newCode"
+                         placeholder="例如：A9"
+                         className="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder:text-white/40 outline-none focus:bg-white/20 transition-all"
+                       />
+                     </div>
+                     <div>
+                       <label className="block text-green-100 text-sm mb-2">故障描述</label>
+                       <textarea 
+                         name="newDesc"
+                         placeholder="请详细描述故障现象..."
+                         className="w-full p-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder:text-white/40 min-h-[80px] outline-none focus:bg-white/20 transition-all"
+                       />
+                     </div>
+                   </div>
+                   <button 
+                     type="submit"
+                     className="w-full mt-6 py-4 rounded-xl bg-white text-green-600 font-bold text-lg transition-all active:scale-95 shadow-lg"
+                   >
+                     提交新故障代码
+                   </button>
+                 </form>
+               </div>
+             </div>
           </div>
         )}
 
@@ -1711,18 +1781,44 @@ function ACRepairApp() {
                   <div className="flex gap-2">
                     <button 
                       onClick={() => {
+                        const newCode = prompt('修改故障代码编号:', f.code);
+                        if (newCode && newCode.trim() && newCode !== f.code) {
+                          // 检查新代码是否已存在
+                          if (faults.some(it => it.code === newCode)) {
+                            alert('该故障代码编号已存在！');
+                            return;
+                          }
+                          // 更新故障代码编号
+                          const updatedFaults = faults.map(it => {
+                            if (it.code === f.code) {
+                              return { ...it, code: newCode };
+                            }
+                            return it;
+                          });
+                          updateFaults(updatedFaults);
+                        }
+                      }}
+                      className="p-3 text-purple-500 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors"
+                      title="修改代码编号"
+                    >
+                      <span className="text-xs font-bold">#</span>
+                    </button>
+                    <button 
+                      onClick={() => {
                         const newDesc = prompt('修改描述:', f.description);
                         if (newDesc && newDesc.trim()) {
                           updateFaults(faults.map(it => it.code === f.code ? {...it, description: newDesc} : it));
                         }
                       }}
                       className="p-3 text-blue-500 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors"
+                      title="修改描述"
                     >
                       <Edit3 size={18} />
                     </button>
                     <button 
                       onClick={() => deleteFault(f.code)}
                       className="p-3 text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+                      title="删除故障代码"
                     >
                       <Trash2 size={18} />
                     </button>
